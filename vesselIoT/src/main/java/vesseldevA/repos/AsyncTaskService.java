@@ -1,8 +1,7 @@
-package vesseldevA.restapi;
+package vesseldevA.repos;
 
 import com.amazonaws.services.iot.client.AWSIotException;
 import com.amazonaws.services.iot.client.AWSIotMessage;
-import com.amazonaws.services.iot.client.AWSIotMqttClient;
 import com.amazonaws.services.iot.client.AWSIotQos;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,12 +12,10 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import vesseldevA.domain.*;
-import vesseldevA.repos.*;
 import vesseldevA.services.pubSub.VesselPublisher;
 import vesseldevA.services.shadow.VesselDevice;
 import vesseldevA.util.DateUtil;
@@ -55,7 +52,6 @@ public class AsyncTaskService {
     @Autowired
     private TrackService trackService;
 
-
     public void initVesselState(String vid) throws InterruptedException, IOException, AWSIotException {
         DeviceClient deviceClient = awsClientService.findDeviceClient(vid);
         String updateShadowTopic = deviceClient.getAwsUpdateShadowTopic();
@@ -76,8 +72,7 @@ public class AsyncTaskService {
         long defaultDelayMs = commonRepository.getDefautDelayHour() * 60 * 60 * 1000;
         long simuStartMs = new Date().getTime();
         vesselDevice.updateSimuStartTime(DateUtil.ms2dateStr(simuStartMs));
-        long rawStartMs = DateUtil.str2date(trajectoryRepository
-                .findVesselState(vesselDevice.getPositionIndex())
+        long rawStartMs = DateUtil.str2date(steps.get(0).getVesselStates().get(0)
                 .getTimeStamp())
                 .getTime();
         int i = 0;
@@ -136,7 +131,7 @@ public class AsyncTaskService {
         while(i < size){
             vesselDevice.updatePositionIndex(pos+1);
             x = System.currentTimeMillis();
-            logger.info("<" + i + ">" + (x - y));
+//            logger.info("<" + i + ">" + (x - y));
             VesselState curVesselState = stepVesselStates.get(i).deepCopy();// deep copy to avoid modifying the vesselStates map
             long sleepMs = 0;
             //TODO:calculate elapse time between current state and next state
@@ -144,58 +139,53 @@ public class AsyncTaskService {
                 long curStateMs = DateUtil.str2date(stepVesselStates.get(i).getTimeStamp()).getTime();
                 long nextStateMs = DateUtil.str2date(stepVesselStates.get(i+ 1).getTimeStamp()).getTime();
                 sleepMs = nextStateMs - curStateMs;
-                logger.info(stepVesselStates.get(i)+":"+stepVesselStates.get(i + 1)+":"+sleepMs+"sleep : " + sleepMs / zoomInVal);
             }
             //TODO: modify the date in vessel state.
             long curMs = new Date().getTime();
             long startMs = DateUtil.str2date(vesselDevice.getSimuStartTime()).getTime();
             String newStateTime = DateUtil.ms2dateStr(startMs + (curMs - startMs) * zoomInVal);
             curVesselState.setTimeStamp(newStateTime);
-            logger.debug("Current date in vessel state : " + newStateTime);
             vesselDevice.updateVesselState(curVesselState);
 
             //TODO: sync vessel device data to vessel shadow
             String payload = "{\"state\":{\"desired\":" + objectMapper.writeValueAsString(vesselDevice) + "}}";
             AWSIotMessage pub = new VesselPublisher(updateShadowTopic, AWSIotQos.QOS0, payload);
-            logger.debug("voyaging--->payload : " + payload);
             deviceClient.getAwsIotMqttClient().publish(pub);
 
-            simpMessagingTemplate.convertAndSend(stompUpdateShadowTopic ,  vesselDevice);
             i++;
             y = x;
-            Thread.sleep(sleepMs / zoomInVal);
+            Thread.sleep(sleepMs/zoomInVal);
         }
 
-        if(curTrackIndex < track.getSteps().size()-1){
-            Destination nextDest = vesselDevice.getDestinations().get(curTrackIndex+1);
-            Location nextLoc = locationRepository.findLocation(nextDest.getName());
+
+        if(curTrackIndex <= track.getSteps().size()-1){
+            Destination arrivalDest = vesselDevice.getDestinations().get(curTrackIndex);
+            Location arrivalLoc = locationRepository.findLocation(arrivalDest.getName());
             //TODO: Determine if the status is  anchoring or docking
             ObjectNode payloadObjectNode = objectMapper.createObjectNode();
-            if (nextDest.getEstiAnchorTime().equals(nextDest.getEstiArrivalTime())) {
-                logger.info("Transiting into Docking status"+nextDest.toString());
+            if (arrivalDest.getEstiAnchorTime().equals(arrivalDest.getEstiArrivalTime())) {
+                logger.info("Transiting into Docking status");
                 vesselDevice.updateStatus("Docking");
                 payloadObjectNode.put("msgType", "DOCKING");
             } else {
-                logger.info("Transiting into Anchoring status"+nextDest.toString());
+                logger.info("Transiting into Anchoring status");
                 vesselDevice.updateStatus("Anchoring");
                 payloadObjectNode.put("msgType", "ANCHORING");
             }
-            logger.info("Current port : " + nextLoc);
+
+            if (curTrackIndex == vesselDevice.getDestinations().size()-1) {
+                logger.info("The vessel arrives at the last port --"+arrivalDest);
+            }else{
+                logger.info("Arriving at  port : " + arrivalDest);
+            }
+
             int nextTrackIndex = curTrackIndex+1;
             vesselDevice.updateNextPortIndex(nextTrackIndex);
-
-            logger.info("Next port : " + nextDest);
             //TODO: sync vessel device data to vessel shadow
             String payload = "{\"state\":{\"desired\":" + objectMapper.writeValueAsString(vesselDevice) + "}}";
             AWSIotMessage pub = new VesselPublisher(updateShadowTopic, AWSIotQos.QOS0, payload);
             deviceClient.getAwsIotMqttClient().publish(pub);
-            simpMessagingTemplate.convertAndSend(stompUpdateShadowTopic ,  vesselDevice);
-//                changeStatus(changeStatusTopic , "VOYAGING_END" , vesselDevice);
             logger.info("reach , nextPortIndex = " + nextTrackIndex);
-        }
-
-        if (curTrackIndex == vesselDevice.getDestinations().size()-1) {
-            logger.info("The vessel arrived at the last port.");
         }
     }
 
@@ -206,36 +196,18 @@ public class AsyncTaskService {
         //TODO: Timing simulation of anchoring and docking status of the ship
         long zoomVal = commonRepository.getZoomInVal();
         long simuMs = DateUtil.str2date(vesselDevice.getSimuStartTime()).getTime();
-        while (true) {
-            long curMs = (new Date().getTime() - simuMs) * zoomVal + simuMs;
-            long nextMs = curMs + 1000 * zoomVal;
-            Destination curDest = vesselDevice.getDestinations().get(vesselDevice.getNextPortIndex() - 1);
-            if (vesselDevice.getStatus().equals("Anchoring")) {
-                long newReachMs = DateUtil.str2date(curDest.getEstiArrivalTime()).getTime();
-                logger.debug("Current time : " + DateUtil.ms2dateStr(curMs) + " Next time : " + DateUtil.ms2dateStr(nextMs) + "new reach time : " + curDest.getEstiArrivalTime());
-                if (newReachMs > curMs && newReachMs <= nextMs) {
-                    vesselDevice.updateStatus("Docking");
-//                            changeStatus(changeStatusTopic , "ANCHORING_END" , vesselDevice);
-                }
-            } else if (vesselDevice.getStatus().equals("Docking")) {
-                long newDepartureMs = DateUtil.str2date(curDest.getEstiDepartureTime()).getTime();
-                logger.info("Current time : " + DateUtil.ms2dateStr(curMs) + " Next time : " + DateUtil.ms2dateStr(nextMs) + " New arrival time : " + curDest.getEstiDepartureTime());
-                if (newDepartureMs > curMs && newDepartureMs <= nextMs) {
-                    //send depature message to vessel process
-                    vesselDevice.updateStatus("Voyaging");
-//                            changeStatus(changeStatusTopic , "DOCKING_END" , vesselDevice);
-                    logger.info("Docking  , departure");
-                    break;
-                }
-            }
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
+        Destination curDest = vesselDevice.getDestinations().get(vesselDevice.getNextPortIndex() - 1);
+        long delayDurationMs = DateUtil.TimeMinus(curDest.getEstiDepartureTime() , curDest.getEstiAnchorTime());
+        long x = System.currentTimeMillis();
+        logger.debug("delayDuraion : "+delayDurationMs);
+        try {
+                Thread.sleep(delayDurationMs/zoomVal);
+        } catch (InterruptedException e) {
                 e.printStackTrace();
-            }
         }
+        long y = System.currentTimeMillis();
+        logger.debug("delay : "+(y-x)/1000+"s");
     }
-    @Async
     public void trackOnce(String vid) throws InterruptedException, AWSIotException, JsonProcessingException {
         DeviceClient deviceClient = awsClientService.findDeviceClient(vid);
         VesselDevice vesselDevice = deviceClient.getVesselDevice();
@@ -245,22 +217,34 @@ public class AsyncTaskService {
         int dSize = destinations.size();
         while(curTrackIndex < dSize){
             reportStep(vid);
+            simuAD(vid);
         }
     }
-    @Async
-    public void testAsync() throws InterruptedException {
-        for(int i = 0 ; i < 10; i++){
-            Thread.sleep(1000);
-            logger.debug("test async task");
 
-        }
-    }
     @Async
-    public void testAsync1() throws InterruptedException {
-        for (int i = 0; i < 10; i++) {
-            Thread.sleep(1000);
-            logger.debug("test async task 1");
+    public void vesselSensor(String vid) throws InterruptedException, AWSIotException, IOException {
+        DeviceClient deviceClient = awsClientService.findDeviceClient(vid);
+        VesselDevice vesselDevice = deviceClient.getVesselDevice();
+        while(true){
+            initVesselState(vid);
+            trackOnce(vid);
+            logger.debug("finish once track -- "+vid);
+       }
+    }
 
+    @Async
+    public void collectData(String vid){
+        DeviceClient deviceClient = awsClientService.findDeviceClient(vid);
+        VesselDevice vesselDevice = deviceClient.getVesselDevice();
+        while(true){
+            try {
+                simpMessagingTemplate.convertAndSend(stompUpdateShadowTopic ,  vesselDevice);
+                logger.info("send to front-end");
+                Thread.sleep(300);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
+
 }

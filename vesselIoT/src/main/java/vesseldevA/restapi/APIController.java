@@ -1,34 +1,18 @@
 package vesseldevA.restapi;
 
 import com.amazonaws.services.iot.client.AWSIotException;
-import com.amazonaws.services.iot.client.AWSIotMessage;
-import com.amazonaws.services.iot.client.AWSIotMqttClient;
-import com.amazonaws.services.iot.client.AWSIotQos;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
-import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.*;
-import vesseldevA.domain.Destination;
-import vesseldevA.domain.Location;
-import vesseldevA.domain.VesselState;
+import vesseldevA.domain.DeviceClient;
 import vesseldevA.repos.*;
-import vesseldevA.services.pubSub.VesselPublisher;
-import vesseldevA.services.shadow.VesselDevice;
-import vesseldevA.util.DateUtil;
 
 import java.io.IOException;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,8 +76,7 @@ public class APIController {
         int zoomInVal = Integer.parseInt(mp.get("zoomInVal").toString());
         commonRepository.setDefautDelayHour(defaultDelayHour);
         commonRepository.setZoomInVal(zoomInVal);
-        asyncTaskService.initVesselState(vid);
-        asyncTaskService.trackOnce(vid);
+        asyncTaskService.collectData(vid);
         return new ResponseEntity<String>(vid , HttpStatus.OK);
     }
 

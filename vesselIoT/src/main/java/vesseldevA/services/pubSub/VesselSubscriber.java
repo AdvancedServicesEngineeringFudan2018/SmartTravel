@@ -30,8 +30,6 @@ public class VesselSubscriber extends AWSIotTopic {
     @Autowired
     private TrajectoryRepository trajectoryRepository;
     @Autowired
-    private MessageHandler messageHandler;
-    @Autowired
     private VesselDevice vesselDevice;
     @Autowired
     private SimpMessagingTemplate simpMessagingTemplate;
@@ -89,27 +87,6 @@ public class VesselSubscriber extends AWSIotTopic {
 //            }
 //
 //        }
-
-    }
-
-    public void voyagingHandler(JsonNode rootNode) throws IOException, InterruptedException, AWSIotException {
-        messageHandler.reportVesselState(rootNode);
-    }
-
-    public void initHandler(JsonNode rootNode) throws IOException, InterruptedException, AWSIotException {
-        messageHandler.initVesselState(rootNode);
-    }
-
-    public void delayHandler(JsonNode rootNode) throws IOException {
-        messageHandler.delay(rootNode);
-
-    }
-
-    public void vesselShadowForwarding(AWSIotMessage message) throws IOException {
-        //admin 默认用户
-        ObjectNode payload = objectMapper.createObjectNode();
-        payload.putPOJO("vesselShadow" , vesselDevice);
-        simpMessagingTemplate.convertAndSend("/topic/init" , vesselDevice);
 
     }
 }

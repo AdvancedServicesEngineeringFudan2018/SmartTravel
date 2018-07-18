@@ -14,12 +14,12 @@ public class DateUtil {
      * @return
      * @throws ParseException
      */
-    public static double TimeMinus(String left, String right) {
+    public static long TimeMinus(String left, String right) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-mm-dd HH:mm:ss");
         try {
             Date d1 = sdf.parse(left);
             Date d2 = sdf.parse(right);
-            return (d1.getTime() - d2.getTime()) * 1.0;
+            return d1.getTime() - d2.getTime();
         } catch (ParseException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();

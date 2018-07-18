@@ -13,11 +13,12 @@ angular.module('myApp.monitor')
                 defaultDelayHour: defaultDelayHour,
                 zoomInVal: zoomInVal
             };
+            $scope.IoTStompClient.send("/app/vessel/monitor", {}, JSON.stringify(params));
 
-            $http.post(IoTServer + "start", params)
-                .success(function (data) {
-                    console.log("Start Vessel ...", data);
-                });
+            // $http.post(IoTServer + "start", params)
+            //     .success(function (data) {
+            //         console.log("Start Vessel ...", data);
+            //     });
         };
 
         /**
@@ -48,6 +49,7 @@ angular.module('myApp.monitor')
                     }
                 }
                 console.log(params);
+
                 $http.get(IoTServer + "api/location", params)
                     .success(function (data) {
                         console.log("load valid ports: ", data);
@@ -68,6 +70,16 @@ angular.module('myApp.monitor')
             //Init Map
             initMap();
             var portMarkers = []; //港口点标记集合，Marker类集合
+            $scope.shadows = [];
+            $scope.costRatePanelShow = false;
+
+            $scope.setData = function(shadow){
+                for(var i = 0 ; i < $scope.shadows.length; i++){
+                    if($scope.shadows[i].vid == shadow.vid){
+                        $scope.shadows[i] = shadow;
+                    }
+                }
+            }
 
             $scope.IoTHttpUrl = IoTServer + 'sps';
             $scope.IoTSocket = new SockJS($scope.IoTHttpUrl);
@@ -76,6 +88,8 @@ angular.module('myApp.monitor')
             $scope.onConnected = function () {
                 console.log("Connect to IoT cloud successfully.");
                 $scope.IoTStompClient.subscribe("/topic/vessel/shadow/update", $scope.onUpdateVesselShadow);
+                $scope.IoTStompClient.send("/app/vessel/start", {}, JSON.stringify({'MsgType': 'start devices'}));
+
 
             };
             $scope.IoTStompClient.connect({}, $scope.onConnected, $scope.onError);
@@ -100,6 +114,7 @@ angular.module('myApp.monitor')
             $scope.onUpdateVesselShadow = function (frame) {
                 var vesselShadow = JSON.parse(frame.body);
                 console.log("Received vessel shadow : ", vesselShadow);
+                $scope.costRatePanelShow = true;
                 var frameData = JSON.parse(frame.body);
                 if($scope.vmarker != null){
                     $scope.vmarker.hide();

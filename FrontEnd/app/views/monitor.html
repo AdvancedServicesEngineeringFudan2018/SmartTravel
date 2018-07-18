@@ -90,8 +90,8 @@
     </div><!-- /.modal -->
 </div>
 <div id="mapConsole" class="collapse pull-left">
-    <div class="panel-group" id="accordion" >
-        <div class="panel panel-default" >
+    <div class="panel-group" id="accordion">
+        <div class="panel panel-default">
             <div class="panel-heading">
                 <button type="button" class="btn btn-primary btn-block" data-toggle="collapse"
                         data-target="#collapseOne" data-parent="accordion">Supplier-Manager
@@ -102,7 +102,7 @@
                     <table class="table">
                         <tr>
                             <td><span class="input-group-addon">Manager:</span></td>
-                        <td><input type="text" class="form-control" id="startPointSearch" placeholder="请输入关键字"
+                            <td><input type="text" class="form-control" id="startPointSearch" placeholder="请输入关键字"
                                        value="宁波"></td>
                         </tr>
                         <tr>
@@ -139,9 +139,9 @@
                                        value="413362260"></td>
                         </tr>
                     </table>
-                    <button type="button" class="btn btn-primary pull-right" id = "dxyBtn"  data-toggle="collapse"
-                            data-target="#collapseTwo"   ng-click="setDxy()">
-                            OK
+                    <button type="button" class="btn btn-primary pull-right" id="dxyBtn" data-toggle="collapse"
+                            data-target="#collapseTwo" ng-click="setDxy()">
+                        OK
                     </button>
 
                 </div>
@@ -174,33 +174,33 @@
     </div>
 </div>
 
-<div class="panel panel-info" id="costRatePanel" ng-show = "costRatePanelShow == true">
+<div class="panel panel-info" id="costRatePanel" ng-show="costRatePanelShow == true">
     <div class="panel-heading">
-        <span class="panel-title">决策效益</span>
+        <span class="panel-title">Vessel State</span>
     </div>
     <div class="panel-body">
-        <div class="input-group input-group-sm">
-            <span class="input-group-addon">事件</span>
-            <input type="text" class="form-control" id="event" ng-model="eventType" readonly="readonly">
-        </div>
-        <div class="input-group input-group-sm">
-            <span class="input-group-addon">1-(C1/C0)</span>
-            <input type="text" class="form-control" id="C1C0" ng-model="C1C0" readonly="readonly">
-        </div>
-        <div class="input-group input-group-sm">
-            <span class="input-group-addon">1-(C2/C1)</span>
-            <input type="text" class="form-control" id="C2C1" ng-model="C2C1" readonly="readonly">
-        </div>
-        <div class="input-group input-group-sm">
-            <span class="input-group-addon">1-(C2/C0)</span>
-            <input type="text" class="form-control" id="C2C0" ng-model="C2C0" readonly="readonly">
-        </div>
+        <table class="table">
+            <thead>
+            <tr>
+                <th><span>VID</span></th>
+                <th><span>Logitude</span></th>
+                <th><span>Latitude</span></th>
+                <th><span>Status</span></th>
+            </tr>
+            </thead>
+
+            <tbody>
+                <tr ng-repeat="shadow in shadows">
+                    <td><span>{shadow.vid}</span></td>
+                    <td><span>{shadow.vesselState.longitude}</span></td>
+                    <td><span>{shadow.vesselState.latitude}</span></td>
+                    <td><span>{shadow.status}</span></td>
+
+                </tr>
+            </tbody>
+        </table>
     </div>
     <div class="panel-footer">
-        <span class="">1-(C1/C0):决策前，变化前后效益对比</span>
-        <br>
-        <span class="">1-(C2/C1):变化后，决策前后效益对比</span>
-        <br>
-        <span class="">1-(C2/C0):决策后，变化前后效益对比</span>
+        <span class="">vessel state</span>
     </div>
 </div>
