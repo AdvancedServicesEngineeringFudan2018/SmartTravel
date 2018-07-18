@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import vesseldevA.domain.Destination;
-import vesseldevA.util.ExcelUtil;
+import vesseldevA.util.CsvUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,12 +19,11 @@ public class DestinationRepository {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private List<Destination> destinations = new ArrayList<Destination>();
 
-    public DestinationRepository(@Value("${vessel.destinations.fileName}") String destinationsXls ,
-                              @Value("${vessel.destinations.sheetName}") String sheetName) throws IOException, BiffException {
-        logger.debug(destinationsXls+"--"+sheetName);
-        String path = this.getClass().getResource("/").getPath()+destinationsXls;
-        destinations = ExcelUtil.readDestinations(path , sheetName);
-        logger.debug("destinations : "+destinations.toString());
+    public DestinationRepository(@Value("${vessel.destinations.fileName}") String destinationsCsv) throws IOException, BiffException {
+        logger.debug(destinationsCsv+"--");
+//        String path = this.getClass().getResource("/").getPath()+"data/"+destinationsCsv;
+//        List<String> destinations = CsvUtil.readDestinations(path);
+//        logger.debug("destinations : "+destinations.toString());
     }
 
     public Destination findDestination(String name){

@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import vesseldevA.domain.VesselState;
 import vesseldevA.util.CsvUtil;
-import vesseldevA.util.ExcelUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,10 +20,10 @@ public class TrajectoryRepository {
     private List<VesselState> vesselStates = new ArrayList<VesselState>();
 
     public TrajectoryRepository(@Value("${vessel.states.fileName}") String fileName) throws IOException, BiffException {
-        logger.debug("--"+fileName+"--");
-        String path = this.getClass().getResource("/").getPath()+fileName;
-        vesselStates = CsvUtil.readTracjectory(path);
-        logger.debug("vesselStates : "+vesselStates.toString());
+        logger.debug("----"+fileName);
+        String dataPath = this.getClass().getResource("/").getPath()+"data/";
+        vesselStates = CsvUtil.readTracjectory(dataPath+fileName);
+        logger.debug("TrajectoryRepository");
     }
 
     public VesselState findVesselState(int pos){

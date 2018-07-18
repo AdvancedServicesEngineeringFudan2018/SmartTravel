@@ -10,13 +10,10 @@ import org.springframework.stereotype.Service;
 @Service
 public class CommonRepository {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
+    private int defautDelayHour; //默认港口停留时间
+    private int zoomInVal; // 如果按1000的压缩比，停留一小时只需要3.6s
 
-    private  String vid;
-    private long defautDelayHour; //默认港口停留时间
-    private long zoomInVal; // 如果按1000的压缩比，停留一小时只需要3.6s
-
-    public CommonRepository(@Value("${vessel.vid}") String vid){
-        logger.debug("--"+vid+"--");
-        this.vid = vid;
+    public CommonRepository(){
+        logger.debug("--"+defautDelayHour+"--"+zoomInVal);
     }
 }
